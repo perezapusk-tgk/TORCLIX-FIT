@@ -1,5 +1,8 @@
 import http from "node:http";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
 import pg from "pg";
 const {Pool}=pg;
 
@@ -7,6 +10,18 @@ const port=Number(process.env.PORT||4000);
 const BOT_TOKEN=process.env.TELEGRAM_BOT_TOKEN||"";
 const DATABASE_URL=process.env.DATABASE_URL||"";
 const pool=DATABASE_URL?new Pool({connectionString:DATABASE_URL,ssl:{rejectUnauthorized:false}}):null;
+const MINIAPP=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../miniapp");
+const mime={".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".json":"application/json; charset=utf-8",".svg":"image/svg+xml",".png":"image/png",".jpg":"image/jpeg",".webp":"image/webp"};
+async function serveMiniApp(req,res){
+ const pathname=new URL(req.url,"http://localhost").pathname;
+ const rel=pathname==="/"?"index.html":pathname.replace(/^\/+/,"");
+ if(rel.startsWith("api/"))return false;
+ const safe=path.resolve(MINIAPP,rel);
+ if(!safe.startsWith(MINIAPP))return false;
+ try{const file=await fs.readFile(safe);res.writeHead(200,{"content-type":mime[path.extname(safe)]||"application/octet-stream","cache-control":"no-cache"});res.end(file);return true;}catch{}
+ if(pathname==="/")return false;
+ try{const file=await fs.readFile(path.join(MINIAPP,"index.html"));res.writeHead(200,{"content-type":"text/html; charset=utf-8","cache-control":"no-cache"});res.end(file);return true;}catch{return false;}
+}
 const sessions=new Map();
 
 const json=(res,status,data)=>{res.writeHead(status,{"content-type":"application/json; charset=utf-8","access-control-allow-origin":"*","access-control-allow-headers":"content-type, x-telegram-init-data, authorization","access-control-allow-methods":"GET,POST,OPTIONS"});res.end(JSON.stringify(data));};
@@ -51,6 +66,7 @@ const server=http.createServer(async(req,res)=>{
    let db="disabled"; if(pool){await pool.query("SELECT 1");db="connected";}
    return json(res,200,{ok:true,service:"torclix-fit-api",version:"0.4.0",storage:pool?"neon-postgres":"memory",database:db});
   }
+  if(req.method==="GET"&&await serveMiniApp(req,res))return;
   if(req.method==="POST"&&req.url==="/api/auth/telegram"){
    const user=telegramUser(req.headers["x-telegram-init-data"]);
    if(!user&&BOT_TOKEN)return json(res,401,{ok:false,error:"Invalid Telegram initData"});
