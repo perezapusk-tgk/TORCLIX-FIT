@@ -96,3 +96,22 @@ section>h1{font-size:48px;line-height:.94;letter-spacing:-.065em;margin:18px 0 3
  .ring{width:136px;height:136px;flex-basis:136px}
  .next-card h2{font-size:31px}
 }
+
+/* TORCLIX FIT MASTER REFERENCE — keep this visual language */
+.app-shell{position:relative;overflow:hidden}
+.app-shell:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:72px 100%;opacity:.18}
+.topbar{height:58px;align-items:center}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800}
+.brand .mark{font-size:14px}
+.hero-photo{height:180px;margin:0 -24px 24px;position:relative;overflow:hidden;background:linear-gradient(140deg,#171a1d,#080909)}
+.hero-photo:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 72% 42%,rgba(214,181,111,.18),transparent 18%),radial-gradient(ellipse at 58% 100%,rgba(95,118,133,.26),transparent 42%),linear-gradient(165deg,transparent 42%,rgba(0,0,0,.8))}
+.hero-photo:after{content:"TORCLIX FIT";position:absolute;left:24px;bottom:20px;font-size:10px;letter-spacing:.3em;color:rgba(255,255,255,.7)}
+section{position:relative}
+section>h1{font-weight:900}
+.readiness{position:relative}
+.next-card{min-height:230px}
+.next-card .eyebrow{color:#9a9c9f}
+.next-card h2{font-weight:850}
+.panel{position:relative}
+.panel b{font-size:15px}
+.nav:before{content:"";position:absolute;left:12%;right:12%;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(214,181,111,.55),transparent)}
