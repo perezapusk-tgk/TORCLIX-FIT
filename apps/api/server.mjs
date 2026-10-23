@@ -1,16 +1,15 @@
 import http from "node:http";
-
-const port=Number(process.env.PORT||4000);
-const json=(res,status,data)=>{
-  res.writeHead(status,{"content-type":"application/json; charset=utf-8","access-control-allow-origin":"*"});
-  res.end(JSON.stringify(data));
-};
-
-const server=http.createServer((req,res)=>{
-  if(req.method==="GET"&&req.url==="/health") return json(res,200,{ok:true,service:"torclix-fit-api",version:"0.1.0"});
-  if(req.method==="GET"&&req.url==="/api/today") return json(res,200,{ready:87,nextMove:{title:"Грудь + плечи",duration:48,type:"strength"},reasons:["Сон 8ч 12м","Хорошее восстановление","Верх тела не нагружался 2 дня"]});
-  if(req.method==="GET"&&req.url==="/api/fitness-twin") return json(res,200,{strength:74,endurance:68,mobility:62,recovery:81});
-  return json(res,404,{ok:false,error:"Not found"});
-});
-
+import crypto from "node:crypto";
+const port=Number(process.env.PORT||4000),BOT_TOKEN=process.env.TELEGRAM_BOT_TOKEN||"",sessions=new Map();
+const json=(res,status,data)=>{res.writeHead(status,{"content-type":"application/json; charset=utf-8","access-control-allow-origin":"*","access-control-allow-headers":"content-type, x-telegram-init-data","access-control-allow-methods":"GET,POST,OPTIONS"});res.end(JSON.stringify(data))};
+const body=async req=>{let s="";for await(const c of req)s+=c;return s?JSON.parse(s):{}};
+const telegramUser=initData=>{if(!initData)return null;const p=new URLSearchParams(initData),raw=p.get("user");if(!raw)return null;try{const user=JSON.parse(raw);if(!BOT_TOKEN)return user;const check=Buffer.from(p.get("hash")||"","hex");p.delete("hash");const data=[...p.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+"="+v).join("\n");const secret=crypto.createHmac("sha256","WebAppData").update(BOT_TOKEN).digest();const expected=crypto.createHmac("sha256",secret).update(data).digest();if(check.length!==expected.length||!crypto.timingSafeEqual(check,expected))return null;return user}catch{return null}};
+const server=http.createServer(async(req,res)=>{if(req.method==="OPTIONS"){res.writeHead(204);return res.end()}try{
+if(req.method==="GET"&&req.url==="/health")return json(res,200,{ok:true,service:"torclix-fit-api",version:"0.2.0"});
+if(req.method==="POST"&&req.url==="/api/auth/telegram"){const user=telegramUser(req.headers["x-telegram-init-data"]);if(!user&&BOT_TOKEN)return json(res,401,{ok:false,error:"Invalid Telegram initData"});const safe=user||{id:"demo",first_name:"Демо"};const token=crypto.randomUUID();sessions.set(token,{user:safe,createdAt:Date.now()});return json(res,200,{ok:true,token,user:safe})}
+if(req.method==="GET"&&req.url==="/api/today")return json(res,200,{ready:87,nextMove:{title:"Грудь + плечи",duration:48,type:"strength"},reasons:["Сон 8ч 12м","Хорошее восстановление","Верх тела не нагружался 2 дня"],generatedAt:new Date().toISOString()});
+if(req.method==="GET"&&req.url==="/api/fitness-twin")return json(res,200,{strength:74,endurance:68,mobility:62,recovery:81});
+if(req.method==="POST"&&req.url==="/api/workouts/sessions"){const b=await body(req);return json(res,201,{ok:true,session:{id:crypto.randomUUID(),exercise:b.exercise||"Жим штанги лёжа",startedAt:new Date().toISOString(),status:"active"}})}
+if(req.method==="POST"&&req.url.startsWith("/api/workouts/sessions/")&&req.url.endsWith("/sets")){const b=await body(req);return json(res,201,{ok:true,set:{id:crypto.randomUUID(),weight:Number(b.weight||0),reps:Number(b.reps||0),rpe:Number(b.rpe||0),savedAt:new Date().toISOString()}})}
+return json(res,404,{ok:false,error:"Not found"})}catch{return json(res,500,{ok:false,error:"Internal server error"})}});
 server.listen(port,()=>console.log("TORCLIX FIT API listening on "+port));
