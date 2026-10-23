@@ -1,5 +1,5 @@
 const KEY="torclix_fit_state_v2";
-const API="/api";
+const API="https://torclix-fit-api.onrender.com/api";
 const defaults={onboarded:false,name:"",goal:"Сила и форма",level:"Средний",days:4,equipment:"Зал",completed:0,streak:0,ready:87};
 let state=JSON.parse(localStorage.getItem(KEY)||"null")||defaults;
 let authToken=localStorage.getItem("torclix_fit_token")||"";
